@@ -1,4 +1,3 @@
-
 #import "JMPickerView.h"
 
 @interface JMPickerView ()
@@ -26,7 +25,7 @@ static CGFloat kThreeFifths = 0.6;
     return self;
 }
 
-// This method gets called after we have been added to a view.
+// This method gets called when a view adds us as a subview.
 // We're pretty much useless until we've been added to a view.
 - (void)didMoveToSuperview {
     self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height, self.superview.bounds.size.width, kPickerViewStandardHeight);
