@@ -28,17 +28,21 @@ static CGFloat kThreeFifths = 0.6;
 // This method gets called when a view adds us as a subview.
 // We're pretty much useless until we've been added to a view.
 - (void)didMoveToSuperview {
-    self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height, self.superview.bounds.size.width, kPickerViewStandardHeight);
-    self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-    [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selectionIndicatorTap:)]];
+    if (self.superview) {
+        self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height, self.superview.bounds.size.width, kPickerViewStandardHeight);
+        self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
+        [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selectionIndicatorTap:)]];
 
-    self.pickerDismisserView = UIView.new;
-    self.pickerDismisserView.frame = self.topController.view.bounds;
-    self.pickerDismisserView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.pickerDismisserView.backgroundColor = UIColor.blackColor;
-    self.pickerDismisserView.alpha = 0.f;
-    [self.pickerDismisserView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(hide)]];
-    [self.topController.view addSubview:self.pickerDismisserView];
+        if (![self.topController.view.subviews containsObject:self.pickerDismisserView]) {
+            self.pickerDismisserView = UIView.new;
+            self.pickerDismisserView.frame = self.topController.view.bounds;
+            self.pickerDismisserView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+            self.pickerDismisserView.backgroundColor = UIColor.blackColor;
+            self.pickerDismisserView.alpha = 0.f;
+            [self.pickerDismisserView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(hide)]];
+            [self.topController.view addSubview:self.pickerDismisserView];
+        }
+    }
 }
 
 - (void)selectionIndicatorTap:(UITapGestureRecognizer *)gestureRecognizer {
