@@ -32,6 +32,12 @@ static CGFloat kThreeFifths = 0.6;
         self.showsSelectionIndicator = YES;
         self.delegate = delegate;
         self.topController = viewController.navigationController ?: viewController;
+        if ([viewController isKindOfClass:[UITableViewController class]]) {
+            // Can't add ourselves to a UITableViewController (because it scrolls.)
+            // Hopefully there's a parent (like a navigation controller or a tab bar controller.)
+            self.topController = viewController.navigationController;
+            viewController = viewController.parentViewController;
+        }
         [viewController.view addSubview:self];
     }
     return self;
@@ -43,7 +49,9 @@ static CGFloat kThreeFifths = 0.6;
     if (self.superview) {
         self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height, self.superview.bounds.size.width, kPickerViewStandardHeight);
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-        [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selectionIndicatorTap:)]];
+        UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selectionIndicatorTap:)];
+        tapGestureRecognizer.cancelsTouchesInView = NO;
+        [self addGestureRecognizer:tapGestureRecognizer];
 
         if (![self.topController.view.subviews containsObject:self.pickerDismisserView]) {
             self.pickerDismisserView = UIView.new;
