@@ -15,8 +15,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 @class JMPickerView;
 
-@protocol JMPickerViewDelegate <UIPickerViewDelegate>
+@protocol JMPickerViewDataSource <UIPickerViewDataSource>
+@end
 
+@protocol JMPickerViewDelegate <UIPickerViewDelegate>
 @optional
 - (void)pickerViewWasShown:(JMPickerView *)pickerView;
 - (void)pickerViewWasHidden:(JMPickerView *)pickerView;
@@ -24,9 +26,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 @end
 
 @interface JMPickerView : UIPickerView
+@property (nonatomic, weak) id<JMPickerViewDataSource> dataSource;
 @property (nonatomic, weak) id<JMPickerViewDelegate> delegate;
 
-- (JMPickerView *)initWithDelegate:(id<JMPickerViewDelegate>)delegate addingToViewController:(UIViewController *)viewController;
+- (JMPickerView *)init;
+- (JMPickerView *)initAttachingToViewController:(UIViewController *)viewController;
+- (JMPickerView *)initWithDelegate:(id<JMPickerViewDelegate>)delegate
+         attachingToViewController:(UIViewController *)viewController;
+- (JMPickerView *)initWithDataSource:(id<JMPickerViewDataSource>)dataSource
+                            delegate:(id<JMPickerViewDelegate>)delegate
+           attachingToViewController:(UIViewController *)viewController;
+- (void)attachToViewController:(UIViewController*)viewController;
 - (void)show;
 - (void)hide;
 
