@@ -35,3 +35,7 @@ To know when the picker view does stuff, implement these delegate methods:
 - (void)pickerViewSelectionIndicatorWasTapped:(JMPickerView *)pickerView;
 
 They are self explanitory, are they not?
+
+You can add a JMPickerView to any almost any kind of view configuration. The only problem child is adding to a UITableViewController that has no parentViewController.
+
+The problem with this is that a UITableViewController has no view that we can attach to (its view is a tableView which is a special class of scrollView which is not stationary.)
