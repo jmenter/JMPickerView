@@ -12,9 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #import "JMPickerView.h"
 
+@implementation UIViewController (ClassQuery)
+- (BOOL)isTableViewController { return [self isKindOfClass:UITableViewController.class]; }
+- (BOOL)isTabBarController { return [self isKindOfClass:UITabBarController.class]; }
+@end
+
 @interface JMPickerView ()
-@property (nonatomic) UIView *pickerDismisserView;
-@property (nonatomic, weak) UIViewController *topController;
+@property (nonatomic) UIView *dismisserView;
+@property (nonatomic, weak) UIViewController *dismisserViewController;
 @end
 
 @implementation JMPickerView
@@ -25,26 +30,51 @@ static CGFloat kAnimationDuration = 0.25f;
 static CGFloat kTwoFifths = 0.4f;
 static CGFloat kThreeFifths = 0.6;
 
-// This is just a convenient init method.
-// All we need are a delegate and to be added to a viewController's view.
-- (JMPickerView *)initWithDelegate:(id<JMPickerViewDelegate>)delegate addingToViewController:(UIViewController *)viewController {
+- (JMPickerView *)init {
+    return [self initAttachingToViewController:nil];
+}
+
+- (JMPickerView *)initAttachingToViewController:(UIViewController *)viewController {
+    return [self initWithDelegate:nil attachingToViewController:viewController];
+}
+
+- (JMPickerView *)initWithDelegate:(id<JMPickerViewDelegate>)delegate
+         attachingToViewController:(UIViewController *)viewController {
+    return [self initWithDataSource:nil delegate:delegate attachingToViewController:viewController];
+}
+
+- (JMPickerView *)initWithDataSource:(id<JMPickerViewDataSource>)dataSource
+                            delegate:(id<JMPickerViewDelegate>)delegate
+           attachingToViewController:(UIViewController *)viewController {
+    if (viewController.isTableViewController && viewController.parentViewController == nil) {
+        [NSException raise:NSInvalidArgumentException format:@"Adding to standalone UITableViewControllers that don't have parent view controllers is not supported because there is nowhere upon which to attach our views."];
+    }
+    
     if (self = [super init]) {
         self.showsSelectionIndicator = YES;
         self.delegate = delegate;
-        self.topController = viewController.navigationController ?: viewController;
-        if ([viewController isKindOfClass:[UITableViewController class]]) {
-            // Can't add ourselves to a UITableViewController (because it scrolls.)
-            // Hopefully there's a parent (like a navigation controller or a tab bar controller.)
-            self.topController = viewController.navigationController;
-            viewController = viewController.parentViewController;
+        self.dataSource = dataSource;
+        if (viewController) {
+            [self attachToViewController:viewController];
         }
-        [viewController.view addSubview:self];
     }
     return self;
 }
 
-// This method gets called when a view adds us as a subview.
-// We're pretty much useless until we've been added to a view.
+- (void)attachToViewController:(UIViewController*)viewController {
+    self.dismisserViewController = viewController;
+    if (viewController.navigationController) {
+        self.dismisserViewController = viewController.navigationController;
+    }
+    if (viewController.isTableViewController && viewController.parentViewController.isTabBarController) {
+        self.dismisserViewController = viewController.parentViewController;
+    }
+    if (viewController.isTableViewController) {
+        viewController = viewController.parentViewController;
+    }
+    [viewController.view addSubview:self];
+}
+
 - (void)didMoveToSuperview {
     if (self.superview) {
         self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height, self.superview.bounds.size.width, kPickerViewStandardHeight);
@@ -53,14 +83,14 @@ static CGFloat kThreeFifths = 0.6;
         tapGestureRecognizer.cancelsTouchesInView = NO;
         [self addGestureRecognizer:tapGestureRecognizer];
 
-        if (![self.topController.view.subviews containsObject:self.pickerDismisserView]) {
-            self.pickerDismisserView = UIView.new;
-            self.pickerDismisserView.frame = self.topController.view.bounds;
-            self.pickerDismisserView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-            self.pickerDismisserView.backgroundColor = UIColor.blackColor;
-            self.pickerDismisserView.alpha = 0.f;
-            [self.pickerDismisserView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(hide)]];
-            [self.topController.view addSubview:self.pickerDismisserView];
+        if (![self.dismisserViewController.view.subviews containsObject:self.dismisserView]) {
+            self.dismisserView = UIView.new;
+            self.dismisserView.frame = self.dismisserViewController.view.bounds;
+            self.dismisserView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+            self.dismisserView.backgroundColor = UIColor.blackColor;
+            self.dismisserView.alpha = 0.f;
+            [self.dismisserView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(hide)]];
+            [self.dismisserViewController.view addSubview:self.dismisserView];
         }
     }
 }
@@ -77,8 +107,8 @@ static CGFloat kThreeFifths = 0.6;
 - (void)show {
     [UIView animateWithDuration:kAnimationDuration animations:^{
         self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height - kPickerViewStandardHeight, self.superview.bounds.size.width, kPickerViewStandardHeight);
-        self.pickerDismisserView.frame = CGRectMake(self.topController.view.bounds.origin.x, self.topController.view.bounds.origin.y, self.topController.view.bounds.size.width, self.topController.view.bounds.size.height - kPickerViewStandardHeight);
-        self.pickerDismisserView.alpha = kDismissViewAlpha;
+        self.dismisserView.frame = CGRectMake(self.dismisserViewController.view.bounds.origin.x, self.dismisserViewController.view.bounds.origin.y, self.dismisserViewController.view.bounds.size.width, self.dismisserViewController.view.bounds.size.height - kPickerViewStandardHeight);
+        self.dismisserView.alpha = kDismissViewAlpha;
     }];
     if ([self.delegate respondsToSelector:@selector(pickerViewWasShown:)]) {
         [self.delegate pickerViewWasShown:self];
@@ -88,26 +118,12 @@ static CGFloat kThreeFifths = 0.6;
 - (void)hide {
     [UIView animateWithDuration:kAnimationDuration animations:^{
         self.frame = CGRectMake(self.superview.bounds.origin.x, self.superview.bounds.size.height, self.superview.bounds.size.width, kPickerViewStandardHeight);
-        self.pickerDismisserView.frame = self.topController.view.bounds;
-        self.pickerDismisserView.alpha = 0.f;
+        self.dismisserView.frame = self.dismisserViewController.view.bounds;
+        self.dismisserView.alpha = 0.f;
     }];
     if ([self.delegate respondsToSelector:@selector(pickerViewWasHidden:)]) {
         [self.delegate pickerViewWasHidden:self];
     }
-}
-
-// If we weren't initialized with a View Controller/Navigation Controller,
-// we should try to find an approrpiate one. This might be ripe for improvements.
-- (UIViewController *)topController {
-    if (!_topController) {
-        if ([self.superview.nextResponder isKindOfClass:[UIViewController class]]) {
-            _topController = (UIViewController *)self.superview.nextResponder;
-        }
-        if (_topController.navigationController != nil) {
-            _topController = _topController.navigationController;
-        }
-    }
-    return _topController;
 }
 
 @end
